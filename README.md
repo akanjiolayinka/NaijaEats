@@ -434,8 +434,10 @@ pytest tests/ -v --cov=app
 
 | Name | Role | Contact |
 |---|---|---|
-| _Olayinka Akanji_ | Project Lead | _akanjiolayinka01@gmail.com_ |
-| _MicheaL Tunwase_ | ML Engineer | motrned@gmail.com|
+| _Add your name_ | Project Lead | _email_ |
+| _Add team member_ | ML Engineer | _email_ |
+| _Add team member_ | Backend Engineer | _email_ |
+| _Add team member_ | Data Engineer | _email_ |
 
 ---
 

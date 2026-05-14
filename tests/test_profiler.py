@@ -1,0 +1,16 @@
+"""
+Tests for the behavioral profiling module (app/profiler.py).
+"""
+
+# TODO: from app.profiler import BehavioralProfiler, BehavioralFingerprint
+
+
+class TestBehavioralProfiler:
+    """Unit tests for BehavioralProfiler."""
+
+    # TODO: def test_build_profile_returns_fingerprint(self): ...
+    # TODO: def test_build_profile_requires_minimum_reviews(self): ...
+    # TODO: def test_rating_distribution_is_accurate(self): ...
+    # TODO: def test_pidgin_detection(self): ...
+    # TODO: def test_save_and_load_profile_roundtrip(self): ...
+    pass
