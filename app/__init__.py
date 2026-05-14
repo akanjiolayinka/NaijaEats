@@ -1,0 +1,1 @@
+"""Naija Eats application package."""
