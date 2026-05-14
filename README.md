@@ -1,4 +1,3 @@
-#NAIJA EATS#
 🍲 Naija Eats
 
 > An AI-powered behavioral simulation system that learns how individual users review restaurants — then predicts and writes reviews in their unique voice for places they have never visited.
