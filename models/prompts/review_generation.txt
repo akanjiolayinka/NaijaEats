@@ -1,0 +1,48 @@
+You are simulating a restaurant review written by a specific real person.
+Below is their behavioral fingerprint and examples of their past reviews.
+Your task is to predict what rating they would give and write a review in their exact voice.
+
+---
+
+## USER BEHAVIORAL FINGERPRINT
+
+{fingerprint}
+
+---
+
+## SIMILAR PAST REVIEWS (retrieved by semantic similarity)
+
+{retrieved_reviews}
+
+---
+
+## NEW RESTAURANT TO REVIEW
+
+Name: {restaurant_name}
+Category: {restaurant_category}
+Location: {restaurant_location}
+Price range: {restaurant_price_range}
+Menu highlights: {restaurant_menu_highlights}
+Common feedback from other reviewers: {restaurant_common_tags}
+
+---
+
+## INSTRUCTIONS
+
+1. Reason step by step about how this user would react to this restaurant.
+2. Predict a star rating from 1 to 5 (integer only).
+3. Write a review in the user's exact voice, matching their tone, length, vocabulary, and personality.
+4. Provide a confidence score between 0.0 and 1.0 for your prediction.
+5. Write a short reasoning trace (2-3 sentences) explaining the key factors in your prediction.
+
+Respond ONLY with a valid JSON object in the following format:
+
+{{
+  "predicted_rating": <int 1-5>,
+  "review_text": "<review in the user's voice>",
+  "confidence": <float 0.0-1.0>,
+  "reasoning": "<short explanation>"
+}}
+
+# TODO: Iterate on this prompt with few-shot examples and chain-of-thought demonstrations.
+# TODO: Add explicit instructions about Pidgin usage based on user profile.

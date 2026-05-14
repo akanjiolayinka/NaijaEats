@@ -1,0 +1,20 @@
+# Install production deps first
+-r requirements.txt
+
+# --- Testing ---
+pytest==8.3.5
+pytest-cov==6.1.0
+pytest-asyncio==0.26.0
+httpx==0.28.1  # needed by FastAPI TestClient
+
+# --- Code quality ---
+black==25.1.0
+flake8==7.2.0
+isort==5.13.2
+
+# --- Pre-commit ---
+pre-commit==4.2.0
+
+# --- Notebooks ---
+ipykernel==6.29.5
+jupyter==1.1.1
