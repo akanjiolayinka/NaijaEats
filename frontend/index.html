@@ -131,6 +131,7 @@
       text-align: left;
       cursor: pointer;
       z-index: 1;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
     .restaurant-node strong {
@@ -147,8 +148,23 @@
     }
 
     .restaurant-node.active {
-      outline: 2px solid var(--accent);
-      background: var(--accent-soft);
+      border-color: var(--accent);
+      background: #fff8ef;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .restaurant-node.active::after {
+      content: "Selected";
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
     }
 
     .node-1 { top: 74px; left: 42px; }
@@ -246,12 +262,15 @@
       background: #fff;
       color: var(--ink);
       border: 1px solid var(--border);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
     }
 
     .rating-btn.active {
-      background: var(--ink);
+      background: var(--accent-2);
       color: #fff;
-      border-color: var(--ink);
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(20, 83, 45, 0.16);
+      transform: translateY(-1px);
     }
 
     .small-note {
@@ -268,12 +287,31 @@
       font: inherit;
       cursor: pointer;
       min-width: 180px;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
     }
 
     button.secondary {
       background: var(--panel);
       color: var(--ink);
       border-color: var(--border);
+    }
+
+    button:hover,
+    button:focus-visible,
+    .rating-btn:hover,
+    .rating-btn:focus-visible,
+    .restaurant-node:hover,
+    .restaurant-node:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+    }
+
+    button:active,
+    .rating-btn:active,
+    .restaurant-node:active {
+      transform: translateY(0);
+      box-shadow: none;
     }
 
     .demo-output {
@@ -384,15 +422,15 @@
         <h2 class="section-title">1. Pick a restaurant</h2>
         <div class="map" id="demo-map" aria-label="Demo restaurant map">
           <div class="map-label">Demo map. Select a restaurant to load its data.</div>
-          <button class="restaurant-node node-1 active" type="button" data-restaurant='{"name":"Mama Titi\'s Kitchen","category":"Nigerian","price_range":"₦₦","location":"Surulere, Lagos","menu_highlights":["amala","gbegiri","assorted meat"],"common_tags":["authentic","slow service"],"rating":4}'>
+          <button class="restaurant-node node-1 active" type="button" data-restaurant-key="mama-titi">
             <strong>Mama Titi's Kitchen</strong>
             <span>Surulere, Lagos<br />Nigerian food · close by · busy evenings</span>
           </button>
-          <button class="restaurant-node node-2" type="button" data-restaurant='{"name":"Buka Junction","category":"Local","price_range":"₦","location":"Yaba, Lagos","menu_highlights":["rice","stew","swallow"],"common_tags":["fast service","value"],"rating":3}'>
+          <button class="restaurant-node node-2" type="button" data-restaurant-key="buka-junction">
             <strong>Buka Junction</strong>
             <span>Yaba, Lagos<br />Simple lunch spot · low price</span>
           </button>
-          <button class="restaurant-node node-3" type="button" data-restaurant='{"name":"Jollof Yard","category":"Contemporary Nigerian","price_range":"₦₦₦","location":"Ikeja, Lagos","menu_highlights":["jollof","suya","small chops"],"common_tags":["stylish","consistent"],"rating":5}'>
+          <button class="restaurant-node node-3" type="button" data-restaurant-key="jollof-yard">
             <strong>Jollof Yard</strong>
             <span>Ikeja, Lagos<br />Higher-end spot · dinner crowd</span>
           </button>
@@ -523,6 +561,35 @@
     const summaryTone = document.getElementById('summary-tone');
     const summaryRating = document.getElementById('summary-rating');
     const ratingButtons = Array.from(document.querySelectorAll('.rating-btn'));
+    const restaurantCatalog = {
+      'mama-titi': {
+        name: "Mama Titi's Kitchen",
+        category: 'Nigerian',
+        price_range: '₦₦',
+        location: 'Surulere, Lagos',
+        menu_highlights: ['amala', 'gbegiri', 'assorted meat'],
+        common_tags: ['authentic', 'slow service'],
+        rating: 4,
+      },
+      'buka-junction': {
+        name: 'Buka Junction',
+        category: 'Local',
+        price_range: '₦',
+        location: 'Yaba, Lagos',
+        menu_highlights: ['rice', 'stew', 'swallow'],
+        common_tags: ['fast service', 'value'],
+        rating: 3,
+      },
+      'jollof-yard': {
+        name: 'Jollof Yard',
+        category: 'Contemporary Nigerian',
+        price_range: '₦₦₦',
+        location: 'Ikeja, Lagos',
+        menu_highlights: ['jollof', 'suya', 'small chops'],
+        common_tags: ['stylish', 'consistent'],
+        rating: 5,
+      },
+    };
     let judgeRating = 1;
 
     const restaurantToneMap = {
@@ -562,6 +629,7 @@
     function setActiveNode(node) {
       Array.from(document.querySelectorAll('.restaurant-node')).forEach((button) => {
         button.classList.toggle('active', button === node);
+        button.setAttribute('aria-pressed', button === node ? 'true' : 'false');
       });
     }
 
@@ -581,7 +649,9 @@
       judgeRating = Number(value);
       summaryRating.textContent = String(judgeRating);
       ratingButtons.forEach((button) => {
-        button.classList.toggle('active', Number(button.dataset.rating) === judgeRating);
+        const isActive = Number(button.dataset.rating) === judgeRating;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
     }
 
@@ -651,7 +721,8 @@
       const node = event.target.closest('.restaurant-node');
       if (!node) return;
 
-      const data = JSON.parse(node.dataset.restaurant);
+      const data = restaurantCatalog[node.dataset.restaurantKey];
+      if (!data) return;
       setActiveNode(node);
       applyRestaurant(data);
       setJudgeRating(data.rating || 4);
@@ -660,6 +731,14 @@
 
     ratingButtons.forEach((button) => {
       button.addEventListener('click', () => setJudgeRating(button.dataset.rating));
+    });
+
+    Array.from(document.querySelectorAll('.restaurant-node')).forEach((button) => {
+      button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
+    });
+
+    ratingButtons.forEach((button) => {
+      button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
     });
 
     renderPayload();
