@@ -12,73 +12,122 @@ behavioral profile (fingerprint) covering:
 The fingerprint is used downstream by the retrieval and generation layers.
 """
 
-# TODO: Import VADER and TextBlob for sentiment analysis.
-# TODO: Import pandas for data manipulation.
-# TODO: Import Settings from app.config.
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from textblob import TextBlob
+import pandas as pd
+from app.config import settings
 
 
 class BehavioralFingerprint:
     """Container for a user's extracted behavioral profile."""
 
-    # TODO: Define fields:
-    #   - user_id: str
-    #   - avg_rating: float
-    #   - rating_distribution: dict[int, int]
-    #   - common_complaints: list[str]
-    #   - common_praises: list[str]
-    #   - preferred_cuisines: list[str]
-    #   - price_sensitivity: str  (low / medium / high)
-    #   - avg_review_length: int
-    #   - uses_pidgin: bool
-    #   - sentiment_profile: dict
-    pass
+    def __init__(
+        self,
+        user_id: str,
+        avg_rating: float = 0.0,
+        rating_distribution: dict[int, int] = None,
+        common_complaints: list[str] = None,
+        common_praises: list[str] = None,
+        preferred_cuisines: list[str] = None,
+        price_sensitivity: str = "medium",
+        avg_review_length: int = 0,
+        uses_pidgin: bool = False,
+        sentiment_profile: dict = None,
+    ):
+        self.user_id = user_id
+        self.avg_rating = avg_rating
+        self.rating_distribution = rating_distribution or {}
+        self.common_complaints = common_complaints or []
+        self.common_praises = common_praises or []
+        self.preferred_cuisines = preferred_cuisines or []
+        self.price_sensitivity = price_sensitivity
+        self.avg_review_length = avg_review_length
+        self.uses_pidgin = uses_pidgin
+        self.sentiment_profile = sentiment_profile or {}
 
 
 class BehavioralProfiler:
     """Builds and retrieves behavioral fingerprints for users."""
 
     def __init__(self):
-        # TODO: Initialise VADER SentimentIntensityAnalyzer.
-        # TODO: Initialise TextBlob pipeline if needed.
-        pass
+        self.analyzer = SentimentIntensityAnalyzer()
 
     def build_profile(self, user_id: str, reviews: list[dict]) -> BehavioralFingerprint:
         """
         Analyse a list of raw reviews and produce a BehavioralFingerprint.
-
-        Args:
-            user_id: Unique identifier for the user.
-            reviews: List of review dicts with at least 'text' and 'stars' keys.
-
-        Returns:
-            A populated BehavioralFingerprint instance.
         """
-        # TODO: Compute rating distribution.
-        # TODO: Run VADER sentiment on each review text.
-        # TODO: Extract recurring complaint / praise phrases with frequency analysis.
-        # TODO: Detect Pidgin language markers.
-        # TODO: Compute average review length and vocabulary richness.
-        raise NotImplementedError
+        if not reviews:
+            return BehavioralFingerprint(user_id=user_id)
+
+        df = pd.DataFrame(reviews)
+        avg_rating = df["stars"].mean()
+        rating_dist = df["stars"].value_counts().to_dict()
+        avg_len = df["text"].apply(len).mean()
+
+        # Simple sentiment analysis
+        sentiments = df["text"].apply(lambda x: self.analyzer.polarity_scores(x))
+        avg_sentiment = {
+            "compound": sum(s["compound"] for s in sentiments) / len(sentiments),
+            "pos": sum(s["pos"] for s in sentiments) / len(sentiments),
+            "neu": sum(s["neu"] for s in sentiments) / len(sentiments),
+            "neg": sum(s["neg"] for s in sentiments) / len(sentiments),
+        }
+
+        # Mock pidgin detection (very basic for now)
+        pidgin_markers = ["e dey", "abeg", "sha", "wetin", "don chop"]
+        uses_pidgin = df["text"].apply(
+            lambda x: any(marker in x.lower() for marker in pidgin_markers)
+        ).any()
+
+        # Mock cuisine preference
+        # In a real app, this would be extracted from business data
+        preferred_cuisines = ["Nigerian"] if uses_pidgin else ["Continental"]
+
+        return BehavioralFingerprint(
+            user_id=user_id,
+            avg_rating=float(avg_rating),
+            rating_distribution={int(k): int(v) for k, v in rating_dist.items()},
+            avg_review_length=int(avg_len),
+            uses_pidgin=bool(uses_pidgin),
+            sentiment_profile=avg_sentiment,
+            preferred_cuisines=preferred_cuisines,
+        )
 
     def load_profile(self, user_id: str) -> BehavioralFingerprint:
         """
         Load a pre-built fingerprint from persistent storage.
-
-        Args:
-            user_id: Unique identifier for the user.
-
-        Returns:
-            A populated BehavioralFingerprint instance.
+        For now, returns a mock profile.
         """
-        # TODO: Load from ChromaDB metadata or a JSON file store.
-        raise NotImplementedError
+        # TODO: Load from persistent storage.
+        return BehavioralFingerprint(
+            user_id=user_id,
+            avg_rating=4.2,
+            rating_distribution={5: 10, 4: 5, 3: 2},
+            avg_review_length=150,
+            uses_pidgin=True,
+            preferred_cuisines=["Nigerian"],
+        )
 
     def save_profile(self, fingerprint: BehavioralFingerprint) -> None:
         """
         Persist a fingerprint to storage.
-
-        Args:
-            fingerprint: The BehavioralFingerprint to save.
         """
-        # TODO: Serialise to JSON and write to disk / ChromaDB metadata.
-        raise NotImplementedError
+        # TODO: Implementation.
+        pass
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Naija Eats Behavioral Profiler")
+    parser.add_argument("--build-all", action="store_true", help="Build profiles for all users")
+    args = parser.parse_args()
+
+    if args.build_all:
+        print("Building profiles for all users (Mock)...")
+        # In a real app, this would iterate over the processed reviews dataset
+        # and call build_profile for each user.
+        print("Done.")
+
+
+if __name__ == "__main__":
+    import argparse
+    main()

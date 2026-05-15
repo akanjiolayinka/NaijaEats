@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # --- API keys ---
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    openrouter_api_key: str = ""
 
     # --- LLM ---
     llm_model: str = "claude-sonnet-4-20250514"
@@ -43,5 +44,5 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
 
-# TODO: Instantiate and export a single settings singleton used across all modules.
-# settings = Settings()
+# Instantiate and export a single settings singleton used across all modules.
+settings = Settings()
