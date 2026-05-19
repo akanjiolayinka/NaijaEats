@@ -1,0 +1,11 @@
+{
+  "user_id": "bayo_001",
+  "restaurant": {
+    "name": "Mama Titi's Kitchen",
+    "category": "Nigerian",
+    "price_range": "₦₦",
+    "location": "Surulere, Lagos",
+    "menu_highlights": ["amala", "gbegiri", "assorted meat"],
+    "common_tags": ["authentic", "slow service"]
+  }
+}

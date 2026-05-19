@@ -7,31 +7,49 @@ similar to the new restaurant description, grounding the LLM in real user
 behavior rather than abstract generalisation.
 """
 
-# TODO: from sentence_transformers import SentenceTransformer
-# TODO: import chromadb
-# TODO: from app.config import settings
+from sentence_transformers import SentenceTransformer
+import chromadb
+from app.config import settings
+import os
 
 
 class ReviewRetriever:
     """Manages the ChromaDB collection and similarity search for user reviews."""
 
     def __init__(self):
-        # TODO: Initialise SentenceTransformer with settings.embedding_model.
-        # TODO: Initialise ChromaDB client with settings.chroma_persist_dir.
-        # TODO: Get or create a collection per user (or one shared collection).
-        pass
+        # We wrap this in a try-except because sentence-transformers might 
+        # try to download the model, which could fail without internet or take too long.
+        try:
+            self.model = SentenceTransformer(settings.embedding_model)
+        except Exception:
+            self.model = None
+            
+        try:
+            self.client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
+            self.collection = self.client.get_or_create_collection(name="user_reviews")
+        except Exception:
+            self.client = None
+            self.collection = None
 
     def index_reviews(self, user_id: str, reviews: list[dict]) -> None:
         """
         Embed and store a user's reviews in the vector store.
-
-        Args:
-            user_id: Unique identifier for the user.
-            reviews: List of review dicts with at least 'text', 'stars', and 'review_id'.
         """
-        # TODO: Generate embeddings for each review text.
-        # TODO: Upsert into ChromaDB with metadata (stars, user_id, review_id).
-        raise NotImplementedError
+        if not self.collection or not self.model:
+            return
+
+        texts = [r["text"] for r in reviews]
+        ids = [str(r.get("review_id", i)) for i, r in enumerate(reviews)]
+        metadatas = [{"user_id": user_id, "stars": r["stars"]} for r in reviews]
+        
+        embeddings = self.model.encode(texts).tolist()
+        
+        self.collection.upsert(
+            ids=ids,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            documents=texts
+        )
 
     def retrieve_similar(
         self,
@@ -41,16 +59,28 @@ class ReviewRetriever:
     ) -> list[dict]:
         """
         Find the top-K reviews most similar to the query string.
-
-        Args:
-            user_id: Restrict search to this user's reviews.
-            query: Free-text description of the new restaurant.
-            top_k: Number of results to return; defaults to settings.top_k_retrieval.
-
-        Returns:
-            List of review dicts ordered by descending similarity score.
         """
-        # TODO: Embed the query text.
-        # TODO: Run ChromaDB similarity search filtered by user_id.
-        # TODO: Return results enriched with distance/score field.
-        raise NotImplementedError
+        if not self.collection or not self.model:
+            # Fallback to empty list if ChromaDB is not ready
+            return []
+
+        k = top_k or settings.top_k_retrieval
+        
+        query_embedding = self.model.encode([query]).tolist()[0]
+        
+        results = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=k,
+            where={"user_id": user_id}
+        )
+        
+        formatted_results = []
+        if results["documents"]:
+            for i in range(len(results["documents"][0])):
+                formatted_results.append({
+                    "text": results["documents"][0][i],
+                    "metadata": results["metadata"][0][i],
+                    "distance": results["distances"][0][i] if "distances" in results else None
+                })
+        
+        return formatted_results

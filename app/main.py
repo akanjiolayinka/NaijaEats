@@ -4,7 +4,20 @@ FastAPI application entrypoint for Naija Eats.
 Registers all API routes and initialises application-level middleware.
 """
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from app.schemas import (
+    SimulateReviewRequest,
+    SimulateReviewResponse,
+    UserProfileResponse,
+    HealthResponse,
+)
+from app.profiler import BehavioralProfiler
+from app.retriever import ReviewRetriever
+from app.generator import ReviewGenerator
+from app.nigerianizer import Nigerianizer
 
 app = FastAPI(
     title="Naija Eats",
@@ -16,21 +29,93 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Initialise components
+profiler = BehavioralProfiler()
+retriever = ReviewRetriever()
+generator = ReviewGenerator()
+nigerianizer = Nigerianizer()
+frontend_index = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+async def frontend_home() -> FileResponse:
+    """Serve the judge-facing frontend demo."""
+    return FileResponse(frontend_index)
+
 
 # ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 
 
-@app.get("/health", tags=["health"])
+@app.get("/health", response_model=HealthResponse, tags=["health"])
 async def health_check() -> dict:
     """Return service liveness status."""
     return {"status": "ok"}
 
 
 # ---------------------------------------------------------------------------
-# TODO: Register feature routers once implemented
+# Review Simulation
 # ---------------------------------------------------------------------------
-# from app.routers import reviews, users
-# app.include_router(reviews.router)
-# app.include_router(users.router)
+
+
+@app.post("/simulate-review", response_model=SimulateReviewResponse, tags=["reviews"])
+async def simulate_review(request: SimulateReviewRequest) -> dict:
+    """
+    Generate a simulated review and rating for a given user and restaurant.
+    """
+    try:
+        # 1. Load user profile
+        fingerprint = profiler.load_profile(request.user_id)
+        
+        # 2. Retrieve similar reviews
+        query = f"{request.restaurant.name} {request.restaurant.category} {request.restaurant.location}"
+        similar_reviews = retriever.retrieve_similar(request.user_id, query)
+        
+        # 3. Generate review
+        gen_result = generator.generate(
+            fingerprint=fingerprint,
+            retrieved_reviews=similar_reviews,
+            restaurant=request.restaurant.model_dump()
+        )
+        
+        # 4. Cultural adaptation
+        final_text = nigerianizer.adapt(
+            gen_result["review_text"],
+            uses_pidgin=fingerprint.uses_pidgin
+        )
+        
+        return {
+            "user_id": request.user_id,
+            "predicted_rating": gen_result["predicted_rating"],
+            "review_text": final_text,
+            "confidence": gen_result["confidence"],
+            "reasoning": gen_result["reasoning"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# User Profiles
+# ---------------------------------------------------------------------------
+
+
+@app.get("/users/{user_id}/profile", response_model=UserProfileResponse, tags=["users"])
+async def get_user_profile(user_id: str) -> dict:
+    """
+    Return the behavioral fingerprint for a user.
+    """
+    try:
+        fingerprint = profiler.load_profile(user_id)
+        return {
+            "user_id": user_id,
+            "profile": {
+                "avg_rating": fingerprint.avg_rating,
+                "preferred_cuisines": fingerprint.preferred_cuisines,
+                "uses_pidgin": fingerprint.uses_pidgin,
+                "avg_review_length": fingerprint.avg_review_length
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
